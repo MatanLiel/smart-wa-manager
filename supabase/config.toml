@@ -3,8 +3,8 @@ project_id = "qtibjfewdkgjgmwojlta"
 [functions.config]
 verify_jwt = false
 
-[functions.whatsapp-webhook]
+[functions.get-reply]
 verify_jwt = false
 
-[functions.ai-chat]
+[functions.bot-message]
 verify_jwt = false

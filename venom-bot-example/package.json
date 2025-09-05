@@ -1,0 +1,25 @@
+{
+  "name": "mamaz-ai-venom-bot",
+  "version": "1.0.0",
+  "description": "Venom-bot integration for Mamaz AI WhatsApp assistant",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "dependencies": {
+    "venom-bot": "^5.0.25"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "ai",
+    "venom-bot",
+    "supabase"
+  ],
+  "author": "Mamaz AI",
+  "license": "MIT"
+}
