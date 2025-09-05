@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Development environment
+  mamaz-ai-bot-dev:
+    build:
+      context: .
+      target: development
+    container_name: mamaz-ai-bot-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./tokens:/app/tokens  # Persist session data
+      - ./logs:/app/logs      # Persist logs
+    environment:
+      - NODE_ENV=development
+      - BUSINESS_PHONE=${BUSINESS_PHONE}
+      - SUPABASE_URL=${SUPABASE_URL:-https://qtibjfewdkgjgmwojlta.supabase.co}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SESSION_NAME=${SESSION_NAME:-mamaz-ai-bot}
+      - HEADLESS=${HEADLESS:-false}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # Production environment
+  mamaz-ai-bot:
+    build:
+      context: .
+      target: production
+    container_name: mamaz-ai-bot
+    volumes:
+      - ./tokens:/app/tokens  # Persist session data
+      - ./logs:/app/logs      # Persist logs
+    environment:
+      - NODE_ENV=production
+      - BUSINESS_PHONE=${BUSINESS_PHONE}
+      - SUPABASE_URL=${SUPABASE_URL:-https://qtibjfewdkgjgmwojlta.supabase.co}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SESSION_NAME=${SESSION_NAME:-mamaz-ai-bot}
+      - HEADLESS=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - prod
+
+volumes:
+  tokens:
+  logs:
