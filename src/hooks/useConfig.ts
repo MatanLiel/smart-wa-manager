@@ -11,7 +11,7 @@ interface ConfigData {
 
 import { supabase } from "@/integrations/supabase/client";
 
-const fetchConfig = async (phone: string): Promise<ConfigData> => {
+const fetchConfig = async (phone: string): Promise<ConfigData | null> => {
   // Use a direct GET request for fetching config by phone
   const response = await fetch(`https://qtibjfewdkgjgmwojlta.supabase.co/functions/v1/config/${encodeURIComponent(phone)}`, {
     method: 'GET',
@@ -19,6 +19,10 @@ const fetchConfig = async (phone: string): Promise<ConfigData> => {
       'Content-Type': 'application/json',
     },
   });
+  
+  if (response.status === 404) {
+    return null; // No config found yet, return null instead of error
+  }
   
   if (!response.ok) {
     throw new Error(`Failed to fetch config: ${response.status} ${response.statusText}`);

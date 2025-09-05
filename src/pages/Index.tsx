@@ -85,17 +85,17 @@ const Index = () => {
           /* Configuration Section */
           <div className="max-w-6xl mx-auto">
             {error ? (
-              /* Error State */
+              /* Error State - Only for actual server errors, not 404 */
               <div className="text-center py-12">
                 <div className="mx-auto mb-4 flex items-center justify-center w-16 h-16 bg-destructive/10 rounded-full">
                   <Settings className="h-8 w-8 text-destructive" />
                 </div>
-                <h2 className="text-2xl font-bold mb-2">לא נמצאו הגדרות</h2>
+                <h2 className="text-2xl font-bold mb-2">שגיאה בטעינת ההגדרות</h2>
                 <p className="text-muted-foreground mb-6">
-                  לא נמצאו הגדרות עבור מספר הטלפון {phoneNumber}
+                  אירעה שגיאה בטעינת ההגדרות. אנא נסה שוב מאוחר יותר.
                 </p>
                 <Button onClick={handleReset}>
-                  נסה מספר אחר
+                  נסה שוב
                 </Button>
               </div>
             ) : (
