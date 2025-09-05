@@ -119,6 +119,7 @@ const Index = () => {
                   <ConfigForm
                     config={config || null}
                     loading={configLoading}
+                    phoneNumber={phoneNumber}
                     onSave={handleConfigSave}
                   />
 

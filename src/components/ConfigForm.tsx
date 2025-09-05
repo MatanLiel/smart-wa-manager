@@ -19,7 +19,8 @@ interface ConfigData {
 interface ConfigFormProps {
   config: ConfigData | null;
   loading: boolean;
-  onSave: (config: ConfigData) => void;
+  phoneNumber: string;
+  onSave: (config: ConfigData & { phone_number: string }) => void;
 }
 
 const toneOptions = [
@@ -38,7 +39,7 @@ const serviceTypeOptions = [
   { value: "other", label: "אחר" }
 ];
 
-export default function ConfigForm({ config, loading, onSave }: ConfigFormProps) {
+export default function ConfigForm({ config, loading, phoneNumber, onSave }: ConfigFormProps) {
   const [formData, setFormData] = useState<ConfigData>(
     config || {
       assistant_name: "",
@@ -64,7 +65,7 @@ export default function ConfigForm({ config, loading, onSave }: ConfigFormProps)
       return;
     }
     
-    onSave(formData);
+    onSave({ ...formData, phone_number: phoneNumber });
   };
 
   const handleInputChange = (field: keyof ConfigData, value: string) => {

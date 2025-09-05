@@ -9,11 +9,11 @@ interface ConfigData {
   service_type: string;
 }
 
-// Real API functions
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+import { supabase } from "@/integrations/supabase/client";
 
 const fetchConfig = async (phone: string): Promise<ConfigData> => {
-  const response = await fetch(`${API_BASE_URL}/config/${encodeURIComponent(phone)}`, {
+  // Use a direct GET request for fetching config by phone
+  const response = await fetch(`https://qtibjfewdkgjgmwojlta.supabase.co/functions/v1/config/${encodeURIComponent(phone)}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -27,17 +27,13 @@ const fetchConfig = async (phone: string): Promise<ConfigData> => {
   return response.json();
 };
 
-const saveConfig = async (config: ConfigData): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/config`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(config),
+const saveConfig = async (config: ConfigData & { phone_number: string }): Promise<void> => {
+  const { data, error } = await supabase.functions.invoke('config', {
+    body: config,
   });
   
-  if (!response.ok) {
-    throw new Error(`Failed to save config: ${response.status} ${response.statusText}`);
+  if (error) {
+    throw new Error(`Failed to save config: ${error.message}`);
   }
 };
 

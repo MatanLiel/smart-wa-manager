@@ -14,7 +14,109 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      businesses: {
+        Row: {
+          assistant_name: string
+          created_at: string
+          description: string | null
+          id: string
+          phone_number: string
+          service_type: string
+          tone: string
+          updated_at: string
+          working_hours: string
+        }
+        Insert: {
+          assistant_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          phone_number: string
+          service_type?: string
+          tone?: string
+          updated_at?: string
+          working_hours?: string
+        }
+        Update: {
+          assistant_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          phone_number?: string
+          service_type?: string
+          tone?: string
+          updated_at?: string
+          working_hours?: string
+        }
+        Relationships: []
+      }
+      conversations: {
+        Row: {
+          business_id: string
+          customer_phone: string
+          id: string
+          last_message_at: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          business_id: string
+          customer_phone: string
+          id?: string
+          last_message_at?: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          business_id?: string
+          customer_phone?: string
+          id?: string
+          last_message_at?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          id: string
+          sender_type: string
+          sent_at: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          id?: string
+          sender_type: string
+          sent_at?: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          id?: string
+          sender_type?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
