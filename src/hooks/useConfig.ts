@@ -9,27 +9,36 @@ interface ConfigData {
   service_type: string;
 }
 
-// Mock API functions - replace with real API calls
+// Real API functions
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+
 const fetchConfig = async (phone: string): Promise<ConfigData> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  const response = await fetch(`${API_BASE_URL}/config/${encodeURIComponent(phone)}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   
-  // Mock response
-  return {
-    assistant_name: "עוזר דני - מסעדת הים התיכון",
-    description: "מסעדה ים תיכונית משפחתית הממוקמת בלב תל אביב. מתמחים בדגים טריים וממאכלי ים איכותיים.",
-    tone: "friendly",
-    working_hours: "ראשון-חמישי 11:00-23:00, שישי 11:00-15:00",
-    service_type: "restaurant"
-  };
+  if (!response.ok) {
+    throw new Error(`Failed to fetch config: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
 };
 
 const saveConfig = async (config: ConfigData): Promise<void> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 800));
+  const response = await fetch(`${API_BASE_URL}/config`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(config),
+  });
   
-  // Mock save - in reality this would be a POST request
-  console.log("Saving config:", config);
+  if (!response.ok) {
+    throw new Error(`Failed to save config: ${response.status} ${response.statusText}`);
+  }
 };
 
 export function useConfig(phone: string | null) {
