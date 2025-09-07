@@ -89,22 +89,58 @@ npm run pm2:monit        # Monitor processes
 
 ## ☁️ Cloud Deployment
 
-### Railway
+### Railway (Recommended for WhatsApp Bots)
+
+Railway is often the most reliable platform for WhatsApp bots with browser dependencies.
+
+#### Method 1: GitHub Integration (Easiest)
+1. Go to [Railway.app](https://railway.app)
+2. Sign up/login with GitHub
+3. Click "Deploy from GitHub repo"
+4. Select your repository
+5. Set **Root Directory**: `venom-bot-example`
+6. Railway will auto-detect it's a Node.js project
+
+#### Method 2: Railway CLI
 ```bash
 # 1. Install Railway CLI
 npm install -g @railway/cli
 
-# 2. Login and deploy
-railway login
-railway new
-railway link
-railway up
+# 2. Navigate to bot directory
+cd venom-bot-example
 
-# 3. Set environment variables in Railway dashboard
-BUSINESS_PHONE=972501234567
+# 3. Login and deploy
+railway login
+railway deploy
+
+# 4. Set up environment variables (see below)
+```
+
+#### Environment Variables (Railway Dashboard)
+Go to your Railway project → Variables tab:
+```
+BUSINESS_PHONE=972525587933
 NODE_ENV=production
 HEADLESS=true
+SESSION_NAME=mamaz-ai-bot
+SUPABASE_URL=https://qtibjfewdkgjgmwojlta.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0aWJqZmV3ZGtnamdtd29qbHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTMzMzIsImV4cCI6MjA3MjY2OTMzMn0.7B7NwagU8pPs2BF32wAkxK6n92XpJsrR_sOfzzSCpgs
+PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
 ```
+
+#### After Deployment
+1. Wait for build to complete (2-3 minutes)
+2. Check deployment logs: Railway Dashboard → Your Service → Deployments
+3. Look for QR code in the ASCII art in logs
+4. Scan QR code with WhatsApp on your phone
+5. Bot will be connected and ready!
+
+#### Railway Advantages
+- Automatic Chromium installation
+- Persistent file storage for sessions
+- Better memory management
+- More reliable for browser-based apps
+- Simpler deployment process
 
 ### Render
 1. Connect your GitHub repository
