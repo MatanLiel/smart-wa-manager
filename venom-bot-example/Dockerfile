@@ -35,8 +35,15 @@ RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies with fallback for missing lockfile
+RUN npm ci --omit=dev || (rm -f package-lock.json && npm install --omit=dev)
+
+# Set npm config for reliability
+RUN npm config set registry https://registry.npmjs.org/
+RUN npm config set fetch-retries 3
+
+# Set Puppeteer cache directory
+ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
 
 # Copy app source
 COPY . .

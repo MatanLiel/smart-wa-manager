@@ -24,7 +24,7 @@ DEBUG=false
 1. Connect your GitHub repo to Railway
 2. Set the Root Directory to `venom-bot-example` 
 3. Add all environment variables above
-4. Deploy - the Docker build will now work with package-lock.json
+4. Deploy - the Docker build will handle dependencies automatically
 
 ## Troubleshooting
 
