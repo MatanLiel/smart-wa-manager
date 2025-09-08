@@ -1,39 +1,18 @@
-// Simple health check script for Docker container
-// This script checks if the bot is running and responsive
+const { healthCheck } = require('./bot.js');
 
-const fs = require('fs');
-const path = require('path');
-
-async function checkHealth() {
-  try {
-    // Check if the main process is still running
-    if (typeof global.healthCheck === 'function' && global.healthCheck()) {
-      console.log('✅ Health check passed');
-      process.exit(0);
-    }
-    
-    // Alternative check: Look for recent log activity or session files
-    const sessionPath = path.join(__dirname, 'tokens');
-    if (fs.existsSync(sessionPath)) {
-      const stats = fs.statSync(sessionPath);
-      const lastModified = stats.mtime;
-      const now = new Date();
-      const diffMinutes = (now - lastModified) / (1000 * 60);
-      
-      // If session was modified in the last 5 minutes, consider it healthy
-      if (diffMinutes < 5) {
-        console.log('✅ Health check passed (session active)');
-        process.exit(0);
-      }
-    }
-    
-    console.log('❌ Health check failed');
-    process.exit(1);
-    
-  } catch (error) {
-    console.error('❌ Health check error:', error);
+// Simple health check script
+try {
+  const health = healthCheck();
+  console.log('Health Check:', JSON.stringify(health, null, 2));
+  
+  if (health.status === 'ready') {
+    console.log('✅ Bot is healthy and ready');
+    process.exit(0);
+  } else {
+    console.log('⚠️ Bot is not ready yet');
     process.exit(1);
   }
+} catch (error) {
+  console.error('❌ Health check failed:', error.message);
+  process.exit(1);
 }
-
-checkHealth();

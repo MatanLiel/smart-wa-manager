@@ -1,134 +1,124 @@
 const venom = require('venom-bot');
 
-// Environment variables with fallbacks
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qtibjfewdkgjgmwojlta.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0aWJqZmV3ZGtnamdtd29qbHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTMzMzIsImV4cCI6MjA3MjY2OTMzMn0.7B7NwagU8pPs2BF32wAkxK6n92XpJsrR_sOfzzSCpgs';
-const BUSINESS_PHONE = process.env.BUSINESS_PHONE || 'YOUR_BUSINESS_PHONE';
+// Configuration from environment variables
+const BUSINESS_PHONE = process.env.BUSINESS_PHONE;
 const SESSION_NAME = process.env.SESSION_NAME || 'mamaz-ai-bot';
 const HEADLESS = process.env.HEADLESS === 'true' || process.env.NODE_ENV === 'production';
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qtibjfewdkgjgmwojlta.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0aWJqZmV3ZGtnamdtd29qbHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTMzMzIsImV4cCI6MjA3MjY2OTMzMn0.7B7NwagU8pPs2BF32wAkxK6n92XpJsrR_sOfzzSCpgs';
 
 // Validate required environment variables
-if (BUSINESS_PHONE === 'YOUR_BUSINESS_PHONE' || !BUSINESS_PHONE) {
-  console.error('❌ BUSINESS_PHONE environment variable must be set!');
-  console.error('   Example: BUSINESS_PHONE=972501234567');
+if (!BUSINESS_PHONE) {
+  console.error('❌ Error: BUSINESS_PHONE environment variable is required');
   process.exit(1);
 }
 
-console.log('🔧 Configuration:');
-console.log(`   Environment: ${NODE_ENV}`);
-console.log(`   Business Phone: ${BUSINESS_PHONE}`);
-console.log(`   Session Name: ${SESSION_NAME}`);
-console.log(`   Headless Mode: ${HEADLESS}`);
-console.log(`   Supabase URL: ${SUPABASE_URL}`);
+console.log('🚀 Starting Mamaz AI Bot...');
+console.log(`📱 Business Phone: ${BUSINESS_PHONE}`);
+console.log(`🔧 Session: ${SESSION_NAME}`);
+console.log(`👻 Headless: ${HEADLESS}`);
 
-// Global bot client reference for health checks
+// Global variables
 let botClient = null;
 let isReady = false;
 
-// Enhanced error handling and retry logic
+// Supabase function caller with retry logic
 async function callSupabaseFunction(functionName, data, retries = 3) {
+  const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
+  
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error(`Error calling ${functionName} (attempt ${attempt}/${retries}):`, error.message);
+      console.error(`❌ Attempt ${attempt}/${retries} failed for ${functionName}:`, error.message);
+      
       if (attempt === retries) {
         throw error;
       }
+      
       // Wait before retry (exponential backoff)
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
     }
   }
 }
 
-// Function to log incoming messages with enhanced error handling
-async function logMessage(userId, text, messageType = 'incoming') {
+// Message logging
+async function logMessage(userId, text, messageType) {
   try {
-    const result = await callSupabaseFunction('bot-message', {
-      phone: BUSINESS_PHONE,
-      userId: userId,
-      text: text,
-      messageType: messageType,
-      timestamp: new Date().toISOString(),
+    await callSupabaseFunction('bot-message', {
+      user_id: userId,
+      message: text,
+      message_type: messageType,
+      business_phone: BUSINESS_PHONE
     });
-
-    if (result) {
-      console.log(`✅ Message logged: ${messageType} - ${text.substring(0, 50)}...`);
-    }
   } catch (error) {
-    console.error(`❌ Failed to log message:`, error.message);
+    console.error('❌ Failed to log message:', error.message);
   }
 }
 
-// Function to get AI reply with enhanced error handling
+// Get AI reply
 async function getAIReply(userId, text) {
   try {
-    const result = await callSupabaseFunction('get-reply', {
-      phone: BUSINESS_PHONE,
-      userId: userId,
-      text: text,
+    const response = await callSupabaseFunction('get-reply', {
+      user_id: userId,
+      message: text,
+      business_phone: BUSINESS_PHONE
     });
-
-    if (result && result.reply) {
-      console.log(`🤖 AI Reply: ${result.reply.substring(0, 100)}...`);
-      return result.reply;
-    } else {
-      console.log(`❌ No reply received from AI service`);
-      return 'סליחה, יש לי בעיה זמנית. אנא נסה שוב מאוחר יותר.';
-    }
+    
+    return response.reply || 'מצטער, אני לא יכול לענות כרגע. נסה שוב מאוחר יותר.';
   } catch (error) {
-    console.error(`❌ Failed to get AI reply:`, error.message);
-    return 'סליחה, יש לי בעיה זמנית. אנא נסה שוב מאוחר יותר.';
+    console.error('❌ Failed to get AI reply:', error.message);
+    return 'מצטער, יש בעיה טכנית. נסה שוב מאוחר יותר.';
   }
 }
 
-// Enhanced message processing with rate limiting
+// Rate limiting
 const messageQueue = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const MAX_MESSAGES_PER_USER = 10;
+const RATE_LIMIT = 10; // messages per minute
+const RATE_WINDOW = 60 * 1000; // 1 minute in milliseconds
 
 function isRateLimited(userId) {
   const now = Date.now();
+  
   if (!messageQueue.has(userId)) {
     messageQueue.set(userId, []);
   }
   
   const userMessages = messageQueue.get(userId);
-  // Clean old messages
-  const recentMessages = userMessages.filter(time => now - time < RATE_LIMIT_WINDOW);
-  messageQueue.set(userId, recentMessages);
   
-  if (recentMessages.length >= MAX_MESSAGES_PER_USER) {
+  // Remove old messages outside the rate window
+  const validMessages = userMessages.filter(time => now - time < RATE_WINDOW);
+  messageQueue.set(userId, validMessages);
+  
+  // Check if user exceeded rate limit
+  if (validMessages.length >= RATE_LIMIT) {
     return true;
   }
   
-  recentMessages.push(now);
+  // Add current message timestamp
+  validMessages.push(now);
   return false;
 }
 
-// Create Venom bot instance with enhanced configuration
+// Create Venom Bot
 venom
   .create({
     session: SESSION_NAME,
-    multidevice: true,
     headless: HEADLESS,
-    useChrome: true,
-    debug: NODE_ENV === 'development',
-    logQR: true,
+    useChrome: false,
     browserArgs: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -136,122 +126,120 @@ venom
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
+      '--single-process',
       '--disable-gpu'
-    ]
+    ],
+    puppeteerOptions: {
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    }
   })
   .then((client) => {
     botClient = client;
-    console.log('🚀 Venom bot started successfully!');
-    
+    isReady = true;
+    console.log('✅ Mamaz AI Bot is ready and connected to WhatsApp!');
+    console.log(`📱 Business Phone: ${BUSINESS_PHONE}`);
+
     // Listen for incoming messages
     client.onMessage(async (message) => {
       try {
-        // Skip messages from groups or broadcast lists
+        console.log('📨 Received message:', {
+          from: message.from,
+          body: message.body,
+          isGroup: message.isGroupMsg
+        });
+
+        // Skip group messages and self-sent messages
         if (message.isGroupMsg || message.from === 'status@broadcast') {
           return;
         }
 
-        // Skip messages from yourself
+        // Skip if message is from self
         if (message.fromMe) {
           return;
         }
 
-        // Extract sender ID and message text
-        const senderId = message.from;
-        const messageText = message.body || '';
+        const userId = message.from;
+        const messageText = message.body;
 
-        // Skip empty messages
-        if (!messageText.trim()) {
+        // Check rate limiting
+        if (isRateLimited(userId)) {
+          console.log(`⚠️ Rate limit exceeded for user: ${userId}`);
+          await client.sendText(userId, 'אנא המתן רגע לפני שליחת הודעה נוספת.');
           return;
         }
 
-        console.log(`📨 Received message from ${senderId}: ${messageText.substring(0, 100)}...`);
-
-        // Rate limiting
-        if (isRateLimited(senderId)) {
-          console.log(`⚠️ Rate limited user: ${senderId}`);
-          await client.sendText(senderId, 'אנא המתן רגע לפני שליחת הודעה נוספת.');
-          return;
-        }
-
-        // Log the incoming message
-        await logMessage(senderId, messageText, 'incoming');
+        // Log incoming message
+        await logMessage(userId, messageText, 'incoming');
 
         // Get AI reply
-        const aiReply = await getAIReply(senderId, messageText);
+        const aiReply = await getAIReply(userId, messageText);
 
-        // Send the AI reply back to the user
-        if (aiReply) {
-          await client.sendText(senderId, aiReply);
-          console.log(`📤 Sent reply to ${senderId}: ${aiReply.substring(0, 100)}...`);
-          
-          // Log the outgoing message
-          await logMessage(senderId, aiReply, 'outgoing');
-        }
+        // Send reply
+        await client.sendText(userId, aiReply);
+        console.log('✅ Reply sent successfully');
+
+        // Log outgoing message
+        await logMessage(userId, aiReply, 'outgoing');
 
       } catch (error) {
         console.error('❌ Error processing message:', error);
         
-        // Send error message to user
         try {
-          await client.sendText(message.from, 'סליחה, יש לי בעיה זמנית. אנא נסה שוב מאוחר יותר.');
+          await client.sendText(message.from, 'מצטער, יש בעיה טכנית. נסה שוב מאוחר יותר.');
         } catch (sendError) {
           console.error('❌ Failed to send error message:', sendError);
         }
       }
     });
 
-    // Mark bot as ready
-    isReady = true;
-    console.log('✅ Bot is ready to receive messages!');
-    console.log(`📱 Business phone configured: ${BUSINESS_PHONE}`);
-    console.log(`🔗 Connected to Supabase: ${SUPABASE_URL}`);
-
   })
   .catch((error) => {
-    console.error('❌ Error starting Venom bot:', error);
+    console.error('❌ Error creating Venom Bot:', error);
     process.exit(1);
   });
 
 // Health check function
 function healthCheck() {
-  return isReady && botClient !== null;
+  return {
+    status: isReady ? 'ready' : 'not_ready',
+    timestamp: new Date().toISOString(),
+    business_phone: BUSINESS_PHONE
+  };
 }
 
-// Export health check for external monitoring
-global.healthCheck = healthCheck;
-
-// Enhanced process termination handling
-const gracefulShutdown = (signal) => {
-  console.log(`\n🛑 Received ${signal}. Bot shutting down gracefully...`);
+// Graceful shutdown
+function gracefulShutdown(signal) {
+  console.log(`\n🔄 Received ${signal}. Gracefully shutting down...`);
   
   if (botClient) {
-    try {
-      botClient.close();
-      console.log('✅ Bot client closed successfully');
-    } catch (error) {
-      console.error('❌ Error closing bot client:', error);
-    }
-  }
-  
-  setTimeout(() => {
-    console.log('🔄 Force exit after timeout');
+    botClient.close()
+      .then(() => {
+        console.log('✅ Bot client closed successfully');
+        process.exit(0);
+      })
+      .catch((error) => {
+        console.error('❌ Error closing bot client:', error);
+        process.exit(1);
+      });
+  } else {
     process.exit(0);
-  }, 10000);
-  
-  process.exit(0);
-};
+  }
+}
 
+// Handle process signals
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // nodemon restart
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // PM2 reload
 
-// Unhandled rejection handling
+// Handle unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
+  console.error('❌ Uncaught Exception:', error);
   gracefulShutdown('uncaughtException');
 });
+
+// Export health check function for external use
+module.exports = { healthCheck };
