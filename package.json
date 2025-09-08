@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node bot.js",
+  "start": "node venom-bot-example/bot.js",
     "prod": "NODE_ENV=production node bot.js"
   },
   "dependencies": {
