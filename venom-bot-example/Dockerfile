@@ -35,6 +35,9 @@ RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
 # Copy package files
 COPY package*.json ./
 
+# Skip Chromium download during build to avoid timeout
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 # Install dependencies with fallback for missing lockfile
 RUN npm ci --omit=dev || (rm -f package-lock.json && npm install --omit=dev)
 
