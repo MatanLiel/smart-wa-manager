@@ -1,44 +1,21 @@
-FROM node:18-slim
-
-# Install system dependencies for Puppeteer/Chromium
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    ca-certificates \
-    fonts-liberation \
-    libappindicator3-1 \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libx11-xcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxrandr2 \
-    xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
+# Use Puppeteer base image with pre-installed Chrome
+FROM ghcr.io/puppeteer/puppeteer:21.11.0
 
 # Create app directory
 WORKDIR /app
 
-# Create non-root user
-RUN groupadd -r botuser && useradd -r -g botuser -G audio,video botuser \
-    && mkdir -p /app/tokens /app/logs \
-    && chown -R botuser:botuser /app
+# Create non-root user matching puppeteer user
+USER root
+RUN mkdir -p /app/tokens /app/logs \
+    && chown -R pptruser:pptruser /app
 
 # Copy package files
 COPY package*.json ./
 
-# Skip Chromium download during build to avoid timeout
+# Skip Chromium download since it's already in base image
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Reliability and dependency install
+# Set npm config for reliability and speed
 ENV NPM_CONFIG_FETCH_RETRIES=5
 ENV NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000
 ENV NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000
@@ -48,15 +25,14 @@ RUN npm config set registry https://registry.npmjs.org/ && npm config set progre
 # Install dependencies with fallback for missing lockfile
 RUN npm ci --omit=dev --no-audit --no-fund || (rm -f package-lock.json && npm install --omit=dev --no-audit --no-fund)
 
-# Puppeteer cache directory set earlier for consistent caching
 # Copy app source
 COPY . .
 
-# Change ownership
-RUN chown -R botuser:botuser /app
+# Change ownership to puppeteer user
+RUN chown -R pptruser:pptruser /app
 
 # Switch to non-root user
-USER botuser
+USER pptruser
 
 # Expose port (optional, for health checks)
 EXPOSE 3000

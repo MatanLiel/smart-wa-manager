@@ -32,6 +32,7 @@ DEBUG=false
 - Ensure phone number matches WhatsApp Business registration
 - Verify Supabase credentials are correct
 - Make sure all required environment variables are set
-- Build timeouts: The Docker image skips Chromium download during build for faster deployment
+- Build timeouts: Uses optimized Puppeteer base image with pre-installed Chrome for faster builds
+- The .dockerignore file reduces build context size for improved performance
 
-The bot will use system Chromium and create session tokens in `/app/tokens`.
+The bot uses the pre-installed Chrome from the Puppeteer base image and creates session tokens in `/app/tokens`.
