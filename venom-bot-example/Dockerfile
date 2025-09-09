@@ -38,16 +38,17 @@ COPY package*.json ./
 # Skip Chromium download during build to avoid timeout
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
+# Reliability and dependency install
+ENV NPM_CONFIG_FETCH_RETRIES=5
+ENV NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000
+ENV NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000
+ENV NPM_CONFIG_TIMEOUT=600000
+RUN npm config set registry https://registry.npmjs.org/ && npm config set progress=false
+
 # Install dependencies with fallback for missing lockfile
-RUN npm ci --omit=dev || (rm -f package-lock.json && npm install --omit=dev)
+RUN npm ci --omit=dev --no-audit --no-fund || (rm -f package-lock.json && npm install --omit=dev --no-audit --no-fund)
 
-# Set npm config for reliability
-RUN npm config set registry https://registry.npmjs.org/
-RUN npm config set fetch-retries 3
-
-# Set Puppeteer cache directory
-ENV PUPPETEER_CACHE_DIR=/app/.cache/puppeteer
-
+# Puppeteer cache directory set earlier for consistent caching
 # Copy app source
 COPY . .
 
