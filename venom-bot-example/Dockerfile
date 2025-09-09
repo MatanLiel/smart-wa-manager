@@ -1,45 +1,29 @@
-# Use Puppeteer base image with pre-installed Chrome
-FROM ghcr.io/puppeteer/puppeteer:21.11.0
+FROM node:20-slim
 
-# Create app directory
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libpango-1.0-0 libasound2 fonts-liberation ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV NODE_ENV=production
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 WORKDIR /app
 
-# Create non-root user matching puppeteer user
-USER root
-RUN mkdir -p /app/tokens /app/logs \
-    && chown -R pptruser:pptruser /app
-
-# Copy package files
+# תלויות
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Skip Chromium download since it's already in base image
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-
-# Set npm config for reliability and speed
-ENV NPM_CONFIG_FETCH_RETRIES=5
-ENV NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000
-ENV NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000
-ENV NPM_CONFIG_TIMEOUT=600000
-RUN npm config set registry https://registry.npmjs.org/ && npm config set progress=false
-
-# Install dependencies with fallback for missing lockfile
-RUN npm ci --omit=dev --no-audit --no-fund || (rm -f package-lock.json && npm install --omit=dev --no-audit --no-fund)
-
-# Copy app source
+# קוד
 COPY . .
 
-# Change ownership to puppeteer user
-RUN chown -R pptruser:pptruser /app
+RUN mkdir -p /app/tokens /app/logs && chown -R node:node /app
+USER node
 
-# Switch to non-root user
-USER pptruser
-
-# Expose port (optional, for health checks)
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD node healthcheck.js
-
-# Start the bot
-CMD ["npm", "start"]
+# אם אין "start" ב-package.json של venom-bot-example,
+# אפשר להחליף לשורה הבאה:
+# CMD ["node","bot.js"]
+CMD ["npm","start"]
