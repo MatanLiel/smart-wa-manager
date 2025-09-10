@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:18
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -9,23 +9,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
-# לא להוריד Chromium בזמן npm i (אנחנו משתמשים בכרומיום של המערכת)
 ENV PUPPETEER_SKIP_DOWNLOAD=true
-# הנתיב ל-Chromium במערכת
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
-# תלויות קודם; אם יש lockfile נשתמש ב-npm ci, אחרת npm install
 COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+RUN npm install --omit=dev
 
-# קוד האפליקציה
 COPY . .
 
-# ספריות מתמשכות (לא חובה, אבל נוח לשימוש עם Volumes)
-RUN mkdir -p /app/tokens /app/logs && chown -R node:node /app
-USER node
+RUN mkdir -p /app/tokens /app/logs
 
-# אם ה-entry שונה, עדכן כאן
-CMD ["npm","start"]
+EXPOSE 3000
+
+CMD ["npm", "start"]

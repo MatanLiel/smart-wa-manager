@@ -2,24 +2,43 @@ const venom = require('venom-bot');
 const express = require('express');
 const cors = require('cors');
 
-// Configuration from environment variables
+// Configuration with validation
 const BUSINESS_PHONE = process.env.BUSINESS_PHONE;
 const SESSION_NAME = process.env.SESSION_NAME || 'mamaz-ai-bot';
-const HEADLESS = process.env.HEADLESS === 'true' || process.env.NODE_ENV === 'production';
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qtibjfewdkgjgmwojlta.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0aWJqZmV3ZGtnamdtd29qbHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTMzMzIsImV4cCI6MjA3MjY2OTMzMn0.7B7NwagU8pPs2BF32wAkxK6n92XpJsrR_sOfzzSCpgs';
+const HEADLESS = process.env.HEADLESS !== 'false';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 const PORT = process.env.PORT || 3000;
 
-// Validate required environment variables
-if (!BUSINESS_PHONE) {
-  console.error('❌ Error: BUSINESS_PHONE environment variable is required');
+// Environment validation with detailed error messages
+const requiredVars = {
+  BUSINESS_PHONE: BUSINESS_PHONE,
+  SUPABASE_URL: SUPABASE_URL,
+  SUPABASE_ANON_KEY: SUPABASE_ANON_KEY
+};
+
+const missingVars = Object.entries(requiredVars)
+  .filter(([key, value]) => !value)
+  .map(([key]) => key);
+
+if (missingVars.length > 0) {
+  console.error('❌ Missing required environment variables:');
+  missingVars.forEach(varName => {
+    console.error(`   - ${varName}`);
+  });
+  console.error('\n📋 Required format:');
+  console.error('   BUSINESS_PHONE=+972525587933');
+  console.error('   SUPABASE_URL=https://your-project.supabase.co');
+  console.error('   SUPABASE_ANON_KEY=your-anon-key');
   process.exit(1);
 }
 
-console.log('🚀 Starting Mamaz AI Bot...');
+// Add startup logging for Railway debugging
+console.log(`🚀 Starting Mamaz AI WhatsApp Bot`);
 console.log(`📱 Business Phone: ${BUSINESS_PHONE}`);
-console.log(`🔧 Session: ${SESSION_NAME}`);
-console.log(`👻 Headless: ${HEADLESS}`);
+console.log(`🌐 Port: ${PORT}`);
+console.log(`🤖 Headless: ${HEADLESS}`);
+console.log(`📊 Supabase URL: ${SUPABASE_URL}`);
 
 // Global variables
 let botClient = null;
@@ -27,12 +46,17 @@ let isReady = false;
 let qrCodeData = null;
 let connectionStatus = 'disconnected';
 
-// Express server setup
+// Initialize Express server
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// API endpoints
+// Railway-compatible root health endpoint
+app.get('/', (req, res) => {
+  res.json({ ok: true, message: "Bot is alive" });
+});
+
+// API endpoints for status checking
 app.get('/status', (req, res) => {
   res.json({
     status: connectionStatus,
@@ -52,12 +76,14 @@ app.get('/qr', (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json(healthCheck());
+  const health = healthCheck();
+  // Simplified health response for Railway
+  res.json({ ok: health.status === 'ready', ...health });
 });
 
-// Start Express server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 Express server running on port ${PORT}`);
+  console.log(`✅ Health check available at http://localhost:${PORT}/health`);
 });
 
 // Supabase function caller with retry logic
