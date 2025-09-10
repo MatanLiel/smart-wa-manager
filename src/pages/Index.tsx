@@ -3,6 +3,7 @@ import { Bot, Settings, BarChart3 } from "lucide-react";
 import PhoneInput from "@/components/PhoneInput";
 import ConfigForm from "@/components/ConfigForm";
 import OnboardingSteps from "@/components/OnboardingSteps";
+import QrConnectCard from "@/components/QrConnectCard";
 import { useConfig, useSaveConfig } from "@/hooks/useConfig";
 import { Button } from "@/components/ui/button";
 
@@ -115,6 +116,9 @@ const Index = () => {
                 </div>
 
                 <div className={`grid gap-8 ${showOnboarding ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}>
+                  {/* QR Connection Card */}
+                  <QrConnectCard />
+                  
                   {/* Configuration Form */}
                   <ConfigForm
                     config={config || null}

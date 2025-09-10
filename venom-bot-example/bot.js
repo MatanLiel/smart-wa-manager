@@ -1,4 +1,6 @@
 const venom = require('venom-bot');
+const express = require('express');
+const cors = require('cors');
 
 // Configuration from environment variables
 const BUSINESS_PHONE = process.env.BUSINESS_PHONE;
@@ -6,6 +8,7 @@ const SESSION_NAME = process.env.SESSION_NAME || 'mamaz-ai-bot';
 const HEADLESS = process.env.HEADLESS === 'true' || process.env.NODE_ENV === 'production';
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qtibjfewdkgjgmwojlta.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0aWJqZmV3ZGtnamdtd29qbHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwOTMzMzIsImV4cCI6MjA3MjY2OTMzMn0.7B7NwagU8pPs2BF32wAkxK6n92XpJsrR_sOfzzSCpgs';
+const PORT = process.env.PORT || 3000;
 
 // Validate required environment variables
 if (!BUSINESS_PHONE) {
@@ -21,6 +24,41 @@ console.log(`👻 Headless: ${HEADLESS}`);
 // Global variables
 let botClient = null;
 let isReady = false;
+let qrCodeData = null;
+let connectionStatus = 'disconnected';
+
+// Express server setup
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// API endpoints
+app.get('/status', (req, res) => {
+  res.json({
+    status: connectionStatus,
+    isReady: isReady,
+    businessPhone: BUSINESS_PHONE,
+    hasQR: !!qrCodeData,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/qr', (req, res) => {
+  if (qrCodeData) {
+    res.json({ qr: qrCodeData });
+  } else {
+    res.status(404).json({ error: 'No QR code available' });
+  }
+});
+
+app.get('/health', (req, res) => {
+  res.json(healthCheck());
+});
+
+// Start Express server
+app.listen(PORT, () => {
+  console.log(`🌐 Express server running on port ${PORT}`);
+});
 
 // Supabase function caller with retry logic
 async function callSupabaseFunction(functionName, data, retries = 3) {
@@ -131,6 +169,28 @@ venom
     ],
     puppeteerOptions: {
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    },
+    // QR Code callback
+    qrCallback: (base64Qr, asciiQR, attempts, urlCode) => {
+      console.log('📱 QR Code generated, attempt:', attempts);
+      qrCodeData = base64Qr;
+      connectionStatus = 'qr_ready';
+    },
+    // Status callback
+    statusCallback: (statusSession, session) => {
+      console.log('📱 Status:', statusSession);
+      
+      if (statusSession === 'isLogged') {
+        connectionStatus = 'connected';
+        qrCodeData = null;
+      } else if (statusSession === 'notLogged') {
+        connectionStatus = 'disconnected';
+      } else if (statusSession === 'browserClose') {
+        connectionStatus = 'disconnected';
+        isReady = false;
+      } else if (statusSession === 'qrReadSuccess') {
+        connectionStatus = 'connecting';
+      }
     }
   })
   .then((client) => {
