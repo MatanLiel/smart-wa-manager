@@ -9,21 +9,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
+# לא להוריד Chromium בזמן npm i (אנחנו משתמשים בכרומיום של המערכת)
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+# הנתיב ל-Chromium במערכת
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 WORKDIR /app
 
-# תלויות
+# תלויות קודם; אם יש lockfile נשתמש ב-npm ci, אחרת npm install
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
-# קוד
+# קוד האפליקציה
 COPY . .
 
+# ספריות מתמשכות (לא חובה, אבל נוח לשימוש עם Volumes)
 RUN mkdir -p /app/tokens /app/logs && chown -R node:node /app
 USER node
 
-# אם אין "start" ב-package.json של venom-bot-example,
-# אפשר להחליף לשורה הבאה:
-# CMD ["node","bot.js"]
+# אם ה-entry שונה, עדכן כאן
 CMD ["npm","start"]
