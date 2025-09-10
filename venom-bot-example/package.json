@@ -7,7 +7,6 @@
     "start": "node bot.js",
     "dev": "nodemon bot.js",
     "prod": "NODE_ENV=production node bot.js",
-    "postinstall": "node -e \"try { require('puppeteer'); } catch (e) { console.log('Puppeteer already bundled with venom-bot'); }\"",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js",
     "pm2:restart": "pm2 restart ecosystem.config.js",
@@ -22,22 +21,17 @@
   },
   "dependencies": {
     "venom-bot": "^5.0.25",
-    "puppeteer": "^21.11.0"
+    "puppeteer-core": "^22.0.0",
+    "express": "^4.19.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=16.0.0",
+    "node": ">=18.0.0",
     "npm": ">=8.0.0"
   },
-  "keywords": [
-    "whatsapp",
-    "bot",
-    "ai",
-    "venom-bot",
-    "supabase"
-  ],
+  "keywords": ["whatsapp", "bot", "ai", "venom-bot", "supabase"],
   "author": "Mamaz AI",
   "license": "MIT"
 }
