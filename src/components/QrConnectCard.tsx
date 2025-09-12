@@ -115,29 +115,32 @@ const QrConnectCard = () => {
       setError(null);
       setServiceReachable(true);
     } catch (err) {
-      const newRetryCount = retryCount + 1;
-      setRetryCount(newRetryCount);
-      
-      // Exponential backoff: 3s → 6s → 12s → 24s → 30s (capped)
-      const newInterval = Math.min(3000 * Math.pow(2, newRetryCount - 1), 30000);
-      setPollInterval(newInterval);
-      
-      if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          console.error(`❌ Bot status timeout (attempt ${newRetryCount})`);
-          setError('Status check timeout');
-        } else if (err.message.includes('Failed to fetch')) {
-          console.error(`❌ Bot status unreachable (attempt ${newRetryCount})`);
-          setError('Status service unreachable');
-        } else {
-          console.error(`❌ Bot status error (attempt ${newRetryCount}):`, err.message);
-          setError(`Status error: ${err.message}`);
+      // Use functional updates to avoid stale closures inside setInterval
+      setRetryCount((prev) => {
+        const next = prev + 1;
+        // Exponential backoff: 3s → 6s → 12s → 24s → 30s (capped)
+        const nextInterval = Math.min(3000 * Math.pow(2, next - 1), 30000);
+        setPollInterval(nextInterval);
+
+        if (err instanceof Error) {
+          if (err.name === 'AbortError') {
+            console.error(`❌ Bot status timeout (attempt ${next})`);
+            setError('Status check timeout');
+          } else if (err.message.includes('Failed to fetch')) {
+            console.error(`❌ Bot status unreachable (attempt ${next})`);
+            setError('Status service unreachable');
+          } else {
+            console.error(`❌ Bot status error (attempt ${next}):`, err.message);
+            setError(`Status error: ${err.message}`);
+          }
         }
-      }
-      
+
+        console.log(`🔄 Next retry in ${nextInterval/1000}s (attempt ${next})`);
+        return next;
+      });
+
       setBotStatus(null);
       setQrData(null);
-      console.log(`🔄 Next retry in ${newInterval/1000}s (attempt ${newRetryCount})`);
     } finally {
       setLoading(false);
     }
