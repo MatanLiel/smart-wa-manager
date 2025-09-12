@@ -1,3 +1,9 @@
+// --- Polyfill fix for Node.js fetch ---
+if (typeof File === 'undefined') {
+  global.File = class File {};
+}
+
+// Dependencies
 const venom = require('venom-bot');
 const express = require('express');
 const cors = require('cors');
@@ -77,7 +83,6 @@ app.get('/qr', (req, res) => {
 
 app.get('/health', (req, res) => {
   const health = healthCheck();
-  // Simplified health response for Railway
   res.json({ ok: health.status === 'ready', ...health });
 });
 
@@ -112,8 +117,6 @@ async function callSupabaseFunction(functionName, data, retries = 3) {
       if (attempt === retries) {
         throw error;
       }
-      
-      // Wait before retry (exponential backoff)
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
     }
   }
@@ -141,7 +144,6 @@ async function getAIReply(userId, text) {
       message: text,
       business_phone: BUSINESS_PHONE
     });
-    
     return response.reply || 'מצטער, אני לא יכול לענות כרגע. נסה שוב מאוחר יותר.';
   } catch (error) {
     console.error('❌ Failed to get AI reply:', error.message);
@@ -151,28 +153,20 @@ async function getAIReply(userId, text) {
 
 // Rate limiting
 const messageQueue = new Map();
-const RATE_LIMIT = 10; // messages per minute
-const RATE_WINDOW = 60 * 1000; // 1 minute in milliseconds
+const RATE_LIMIT = 10;
+const RATE_WINDOW = 60 * 1000;
 
 function isRateLimited(userId) {
   const now = Date.now();
-  
   if (!messageQueue.has(userId)) {
     messageQueue.set(userId, []);
   }
-  
   const userMessages = messageQueue.get(userId);
-  
-  // Remove old messages outside the rate window
   const validMessages = userMessages.filter(time => now - time < RATE_WINDOW);
   messageQueue.set(userId, validMessages);
-  
-  // Check if user exceeded rate limit
   if (validMessages.length >= RATE_LIMIT) {
     return true;
   }
-  
-  // Add current message timestamp
   validMessages.push(now);
   return false;
 }
@@ -196,16 +190,13 @@ venom
     puppeteerOptions: {
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     },
-    // QR Code callback
     qrCallback: (base64Qr, asciiQR, attempts, urlCode) => {
       console.log('📱 QR Code generated, attempt:', attempts);
       qrCodeData = base64Qr;
       connectionStatus = 'qr_ready';
     },
-    // Status callback
     statusCallback: (statusSession, session) => {
       console.log('📱 Status:', statusSession);
-      
       if (statusSession === 'isLogged') {
         connectionStatus = 'connected';
         qrCodeData = null;
@@ -225,7 +216,6 @@ venom
     console.log('✅ Mamaz AI Bot is ready and connected to WhatsApp!');
     console.log(`📱 Business Phone: ${BUSINESS_PHONE}`);
 
-    // Listen for incoming messages
     client.onMessage(async (message) => {
       try {
         console.log('📨 Received message:', {
@@ -234,42 +224,26 @@ venom
           isGroup: message.isGroupMsg
         });
 
-        // Skip group messages and self-sent messages
-        if (message.isGroupMsg || message.from === 'status@broadcast') {
-          return;
-        }
-
-        // Skip if message is from self
-        if (message.fromMe) {
-          return;
-        }
+        if (message.isGroupMsg || message.from === 'status@broadcast') return;
+        if (message.fromMe) return;
 
         const userId = message.from;
         const messageText = message.body;
 
-        // Check rate limiting
         if (isRateLimited(userId)) {
           console.log(`⚠️ Rate limit exceeded for user: ${userId}`);
           await client.sendText(userId, 'אנא המתן רגע לפני שליחת הודעה נוספת.');
           return;
         }
 
-        // Log incoming message
         await logMessage(userId, messageText, 'incoming');
-
-        // Get AI reply
         const aiReply = await getAIReply(userId, messageText);
-
-        // Send reply
         await client.sendText(userId, aiReply);
         console.log('✅ Reply sent successfully');
-
-        // Log outgoing message
         await logMessage(userId, aiReply, 'outgoing');
 
       } catch (error) {
         console.error('❌ Error processing message:', error);
-        
         try {
           await client.sendText(message.from, 'מצטער, יש בעיה טכנית. נסה שוב מאוחר יותר.');
         } catch (sendError) {
@@ -296,7 +270,6 @@ function healthCheck() {
 // Graceful shutdown
 function gracefulShutdown(signal) {
   console.log(`\n🔄 Received ${signal}. Gracefully shutting down...`);
-  
   if (botClient) {
     botClient.close()
       .then(() => {
@@ -312,12 +285,10 @@ function gracefulShutdown(signal) {
   }
 }
 
-// Handle process signals
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // PM2 reload
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2'));
 
-// Handle unhandled rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
 });
@@ -327,5 +298,4 @@ process.on('uncaughtException', (error) => {
   gracefulShutdown('uncaughtException');
 });
 
-// Export health check function for external use
 module.exports = { healthCheck };
