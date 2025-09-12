@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/button";
 const Index = () => {
   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showQrFirst, setShowQrFirst] = useState(false);
   
   const { data: config, isLoading: configLoading, error } = useConfig(phoneNumber);
   const saveConfigMutation = useSaveConfig();
 
   const handlePhoneSubmit = (phone: string) => {
     setPhoneNumber(phone);
+    setShowQrFirst(true);
   };
 
   const handleConfigSave = (configData: any) => {
@@ -25,6 +27,7 @@ const Index = () => {
   const handleReset = () => {
     setPhoneNumber(null);
     setShowOnboarding(false);
+    setShowQrFirst(false);
   };
 
   return (
@@ -81,6 +84,40 @@ const Index = () => {
             </div>
             
             <PhoneInput onSubmit={handlePhoneSubmit} />
+          </div>
+        ) : showQrFirst ? (
+          /* QR Code First Section */
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <div className="mx-auto mb-6 flex items-center justify-center w-20 h-20 bg-primary/10 rounded-full">
+                <Bot className="h-10 w-10 text-primary" />
+              </div>
+              <h1 className="text-3xl font-bold mb-4">
+                חיבור לWhatsApp
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-md mx-auto">
+                סרוק את קוד ה-QR עם WhatsApp שלך כדי להתחבר
+              </p>
+            </div>
+            
+            <div className="space-y-6">
+              <QrConnectCard />
+              
+              <div className="flex justify-center gap-4">
+                <Button 
+                  onClick={() => setShowQrFirst(false)}
+                  variant="outline"
+                >
+                  המשך להגדרות
+                </Button>
+                <Button 
+                  onClick={handleReset}
+                  variant="ghost"
+                >
+                  החלף מספר
+                </Button>
+              </div>
+            </div>
           </div>
         ) : (
           /* Configuration Section */
