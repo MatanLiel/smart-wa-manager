@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Smartphone, CheckCircle, AlertCircle } from 'lucide-react';
+import { useBotApiUrl } from '@/hooks/useBotApiUrl';
 
 interface BotStatus {
   status: 'disconnected' | 'qr_ready' | 'connecting' | 'connected';
@@ -23,8 +24,8 @@ const QrConnectCard = () => {
   const [pollInterval, setPollInterval] = useState(3000);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Get bot URL from environment or use default for Railway
-  const BOT_API_URL = import.meta.env.VITE_BOT_API_URL || 'https://your-bot-service.railway.app';
+  // Get bot URL from local settings (fallbacks internally)
+  const { url: BOT_API_URL } = useBotApiUrl();
 
   // Pre-flight health check
   const checkServiceHealth = async () => {

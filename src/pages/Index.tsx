@@ -4,6 +4,7 @@ import PhoneInput from "@/components/PhoneInput";
 import ConfigForm from "@/components/ConfigForm";
 import OnboardingSteps from "@/components/OnboardingSteps";
 import QrConnectCard from "@/components/QrConnectCard";
+import BotServiceSettings from "@/components/BotServiceSettings";
 import { useConfig, useSaveConfig } from "@/hooks/useConfig";
 import { Button } from "@/components/ui/button";
 
@@ -102,6 +103,7 @@ const Index = () => {
             
             <div className="space-y-6">
               <QrConnectCard />
+              <BotServiceSettings />
               
               <div className="flex justify-center gap-4">
                 <Button 
@@ -155,6 +157,7 @@ const Index = () => {
                 <div className={`grid gap-8 ${showOnboarding ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}>
                   {/* QR Connection Card */}
                   <QrConnectCard />
+                  <BotServiceSettings />
                   
                   {/* Configuration Form */}
                   <ConfigForm
